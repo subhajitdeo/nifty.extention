@@ -19,8 +19,6 @@ function loadData() {
       updateStatus('live', '✅ Live', response.lastUpdated);
     } else {
       updateStatus('loading', '⏳ Waiting for data...', '-');
-      // Try to fetch
-      chrome.runtime.sendMessage({ action: 'forceUpdate' });
     }
   });
 }
@@ -46,7 +44,7 @@ function updateUI(data) {
   document.getElementById('sellT1').textContent = data.targets.sell.target1 || '-';
   document.getElementById('sellT2').textContent = data.targets.sell.target2 || '-';
   
-  // Color code buy/sell values
+  // Color code values
   colorizeValue('buyEntry', data.targets.buy.entry, 'green');
   colorizeValue('buySL', data.targets.buy.sl, 'red');
   colorizeValue('buyT1', data.targets.buy.target1, 'green');
