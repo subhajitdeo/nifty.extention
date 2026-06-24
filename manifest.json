@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Nifty OI - Inject Test",
+  "name": "Nifty OI Levels",
   "version": "2.0",
-  "description": "Test inject.js approach",
+  "description": "Draws Nifty OI levels on NSE chart",
   "permissions": [],
   "host_permissions": [
     "https://charting.nseindia.com/*"
@@ -13,6 +13,10 @@
       "matches": ["https://charting.nseindia.com/*"]
     }
   ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Nifty OI Tools"
+  },
   "content_scripts": [
     {
       "matches": ["https://charting.nseindia.com/*"],
