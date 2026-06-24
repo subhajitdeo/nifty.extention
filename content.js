@@ -4,27 +4,28 @@ console.log("📦 content.js loaded");
 const script = document.createElement("script");
 script.src = chrome.runtime.getURL("inject.js");
 
-script.onload = () => {
+script.onload = function() {
     console.log("✅ inject.js injected");
     script.remove();
     
-    // Tell inject.js to fetch data
-    setTimeout(() => {
+    // Tell inject.js to fetch data (using background as proxy)
+    setTimeout(function() {
         window.postMessage({ type: "FETCH_AND_DRAW" }, "*");
     }, 1000);
 };
 
-script.onerror = (e) => {
+script.onerror = function(e) {
     console.error("❌ Failed to inject:", e);
 };
 
 (document.head || document.documentElement).appendChild(script);
 
 // =============================================
-// ✅ NEW: Listen for popup messages
+// LISTEN FOR POPUP MESSAGES
 // =============================================
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    
     if (request.action === 'refreshLines') {
         window.postMessage({ type: "FETCH_AND_DRAW" }, "*");
         sendResponse({ success: true });
@@ -44,6 +45,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             label: request.label || "TEST"
         }, "*");
         sendResponse({ success: true });
+        return true;
+    }
+});
+
+// =============================================
+// PROXY: Forward fetch requests to background
+// =============================================
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.action === 'proxyFetch') {
+        // Forward to background
+        chrome.runtime.sendMessage({ action: 'fetchData' }, function(response) {
+            sendResponse(response);
+        });
         return true;
     }
 });
