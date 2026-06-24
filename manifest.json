@@ -1,18 +1,6 @@
-{
-  "manifest_version": 3,
-  "name": "Nifty OI - Diagnostic",
-  "version": "2.0",
-  "description": "Pure diagnostic - no drawing",
-  "permissions": [],
-  "host_permissions": [
-    "https://charting.nseindia.com/*"
-  ],
-  "content_scripts": [
-    {
-      "matches": ["https://charting.nseindia.com/*"],
-      "js": ["content.js"],
-      "run_at": "document_idle",
-      "world": "MAIN"
-    }
-  ]
-}
+"web_accessible_resources": [
+  {
+    "resources": ["inject.js"],
+    "matches": ["https://charting.nseindia.com/*"]
+  }
+]
