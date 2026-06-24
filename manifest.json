@@ -5,7 +5,7 @@
   "description": "Draws Nifty OI levels on NSE chart",
   "permissions": [],
   "host_permissions": [
-    "https://charting.nseindia.com/*"
+    "https://kdneyzemvqzhwzztflvq.supabase.co/*"
   ],
   "web_accessible_resources": [
     {
@@ -16,6 +16,9 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "Nifty OI Tools"
+  },
+  "background": {
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
