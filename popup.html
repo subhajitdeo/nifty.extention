@@ -3,31 +3,90 @@
 <head>
   <style>
     body {
-      width: 200px;
+      width: 320px;
       padding: 16px;
       background: #0a0e17;
       color: #e0e6ed;
-      font-family: Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
     }
-    h2 { font-size: 14px; margin: 0 0 10px 0; color: #00d4ff; }
-    .status { padding: 8px; background: #111b2e; border-radius: 4px; font-size: 12px; }
+    h2 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      background: linear-gradient(135deg, #00d4ff, #7b2ffc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .status {
+      padding: 10px;
+      background: #111b2e;
+      border-radius: 6px;
+      font-size: 12px;
+      border: 1px solid #1a2332;
+      margin-bottom: 10px;
+      color: #8a9aae;
+    }
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
     .btn {
       width: 100%;
-      padding: 8px;
-      margin-top: 10px;
-      background: #00d4ff;
+      padding: 10px;
       border: none;
-      border-radius: 4px;
-      color: #000;
-      font-weight: bold;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
       cursor: pointer;
+      transition: opacity 0.2s;
     }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: linear-gradient(135deg, #00d4ff, #7b2ffc); color: #fff; }
+    .btn-success { background: #00d4aa; color: #000; }
+    .btn-warning { background: #ffd700; color: #000; }
+    .btn-danger { background: #ff4757; color: #fff; }
+    .btn-secondary { background: #1a2332; color: #e0e6ed; border: 1px solid #2a3a52; }
+    .footer {
+      font-size: 10px;
+      color: #3d4a5f;
+      text-align: center;
+      margin-top: 12px;
+    }
+    .copy-box {
+      background: #0d1624;
+      border: 1px solid #1a2332;
+      border-radius: 4px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 10px;
+      color: #8a9aae;
+      max-height: 100px;
+      overflow: auto;
+      margin-top: 8px;
+      display: none;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .copy-box.show { display: block; }
   </style>
 </head>
 <body>
-  <h2>🧪 Inject Test</h2>
-  <div class="status" id="status">Ready</div>
-  <button class="btn" id="drawBtn">Draw Line</button>
+  <h2>📊 Nifty OI Tools</h2>
+  
+  <div class="status" id="status">✅ Extension is active</div>
+  
+  <div class="btn-group">
+    <button class="btn btn-primary" id="refreshBtn">🔄 Refresh Lines</button>
+    <button class="btn btn-success" id="copyConsoleBtn">📋 Copy Console Code</button>
+    <button class="btn btn-warning" id="copyFullBtn">📋 Copy Full Script</button>
+    <button class="btn btn-danger" id="clearBtn">🗑️ Clear All Lines</button>
+  </div>
+  
+  <div class="copy-box" id="copyBox"></div>
+  
+  <div class="footer" id="footer">v2.0 • Auto-updates every 10s</div>
+  
   <script src="popup.js"></script>
 </body>
 </html>
