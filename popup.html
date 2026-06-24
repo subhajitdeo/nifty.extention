@@ -3,139 +3,178 @@
 <head>
   <style>
     body {
-      width: 300px;
-      padding: 15px;
-      font-family: Arial, sans-serif;
+      width: 320px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #0a0e17;
       color: #e0e6ed;
+      margin: 0;
     }
     h2 {
-      margin: 0 0 10px 0;
-      font-size: 16px;
+      margin: 0 0 12px 0;
+      font-size: 18px;
       background: linear-gradient(135deg, #00d4ff, #7b2ffc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .status {
-      padding: 10px;
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
       background: #111b2e;
       border-radius: 8px;
       border: 1px solid #1a2332;
-      margin-bottom: 10px;
-      font-size: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
     }
-    .level {
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.live { background: #00d4aa; animation: pulse 1.5s ease-in-out infinite; }
+    .status-dot.no-trade { background: #ff4757; }
+    .status-dot.loading { background: #ffd700; animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+    .status-text { flex: 1; }
+    .status-time { font-size: 11px; color: #6b7a8f; }
+    
+    .section {
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #6b7a8f;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .level-row {
       display: flex;
       justify-content: space-between;
       padding: 4px 0;
       font-size: 13px;
       border-bottom: 1px solid #1a2332;
     }
-    .level .label {
-      color: #6b7a8f;
+    .level-row .label { color: #8a9aae; }
+    .level-row .value { font-weight: 600; }
+    .level-row .value.green { color: #00d4aa; }
+    .level-row .value.red { color: #ff4757; }
+    .level-row .value.yellow { color: #ffd700; }
+    .level-row .value.blue { color: #00d4ff; }
+    .level-row .value.purple { color: #a855f7; }
+    .level-row .value.gray { color: #6b7a8f; }
+    
+    .divider {
+      border-top: 1px solid #1a2332;
+      margin: 6px 0;
     }
-    .level .value {
-      font-weight: bold;
-    }
-    .level .value.green { color: #00d4aa; }
-    .level .value.red { color: #ff4757; }
-    .level .value.yellow { color: #ffd700; }
-    .level .value.blue { color: #00d4ff; }
-    .level .value.purple { color: #a855f7; }
-    .refresh-btn {
+    
+    .btn {
       width: 100%;
-      padding: 8px;
+      padding: 10px;
       margin-top: 10px;
       background: linear-gradient(135deg, #00d4ff, #7b2ffc);
       border: none;
       border-radius: 6px;
       color: white;
-      font-weight: bold;
+      font-weight: 600;
+      font-size: 14px;
       cursor: pointer;
+      transition: opacity 0.2s;
     }
-    .refresh-btn:hover {
-      opacity: 0.8;
-    }
-    .status-dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      margin-right: 6px;
-    }
-    .status-dot.live {
-      background: #00d4aa;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    .status-dot.closed {
-      background: #ff4757;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.98); }
+    
+    .footer {
+      font-size: 10px;
+      color: #3d4a5f;
+      text-align: center;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <h2>📊 Nifty OI Levels</h2>
   
-  <div class="status" id="status">
-    <span class="status-dot live" id="statusDot"></span>
-    <span id="statusText">Loading...</span>
+  <div class="status-bar">
+    <span class="status-dot loading" id="statusDot"></span>
+    <span class="status-text" id="statusText">Loading...</span>
+    <span class="status-time" id="statusTime">-</span>
   </div>
   
-  <div id="levels">
-    <div class="level">
-      <span class="label">CE 2nd Highest OI</span>
+  <div class="section">
+    <div class="section-title">OI Levels</div>
+    <div class="level-row">
+      <span class="label">CE 2nd Highest</span>
       <span class="value yellow" id="ceSecond">-</span>
     </div>
-    <div class="level">
-      <span class="label">PE 2nd Highest OI</span>
-      <span class="value orange" id="peSecond">-</span>
+    <div class="level-row">
+      <span class="label">PE 2nd Highest</span>
+      <span class="value yellow" id="peSecond">-</span>
     </div>
-    <div class="level">
+    <div class="level-row">
       <span class="label">CE Highest Volume</span>
       <span class="value blue" id="ceVol">-</span>
     </div>
-    <div class="level">
+    <div class="level-row">
       <span class="label">PE Highest Volume</span>
       <span class="value purple" id="peVol">-</span>
     </div>
-    <div class="level" style="border-top: 2px solid #1a2332; padding-top: 8px; margin-top: 4px;">
-      <span class="label">Buy Entry</span>
+  </div>
+  
+  <div class="divider"></div>
+  
+  <div class="section">
+    <div class="section-title">Buy Levels</div>
+    <div class="level-row">
+      <span class="label">Entry</span>
       <span class="value green" id="buyEntry">-</span>
     </div>
-    <div class="level">
-      <span class="label">Buy SL</span>
+    <div class="level-row">
+      <span class="label">SL</span>
       <span class="value red" id="buySL">-</span>
     </div>
-    <div class="level">
-      <span class="label">Buy Target 1</span>
+    <div class="level-row">
+      <span class="label">Target 1</span>
       <span class="value green" id="buyT1">-</span>
     </div>
-    <div class="level">
-      <span class="label">Buy Target 2</span>
+    <div class="level-row">
+      <span class="label">Target 2</span>
       <span class="value green" id="buyT2">-</span>
     </div>
-    <div class="level" style="border-top: 2px solid #1a2332; padding-top: 8px; margin-top: 4px;">
-      <span class="label">Sell Entry</span>
+  </div>
+  
+  <div class="divider"></div>
+  
+  <div class="section">
+    <div class="section-title">Sell Levels</div>
+    <div class="level-row">
+      <span class="label">Entry</span>
       <span class="value red" id="sellEntry">-</span>
     </div>
-    <div class="level">
-      <span class="label">Sell SL</span>
+    <div class="level-row">
+      <span class="label">SL</span>
       <span class="value red" id="sellSL">-</span>
     </div>
-    <div class="level">
-      <span class="label">Sell Target 1</span>
+    <div class="level-row">
+      <span class="label">Target 1</span>
       <span class="value red" id="sellT1">-</span>
     </div>
-    <div class="level">
-      <span class="label">Sell Target 2</span>
+    <div class="level-row">
+      <span class="label">Target 2</span>
       <span class="value red" id="sellT2">-</span>
     </div>
   </div>
   
-  <button class="refresh-btn" id="refreshBtn">🔄 Refresh Now</button>
+  <button class="btn" id="refreshBtn">🔄 Refresh Now</button>
+  
+  <div class="footer" id="footer">Auto-updates every minute</div>
   
   <script src="popup.js"></script>
 </body>
