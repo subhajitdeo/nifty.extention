@@ -3,7 +3,7 @@
 <head>
   <style>
     body {
-      width: 320px;
+      width: 340px;
       padding: 16px;
       background: #0a0e17;
       color: #e0e6ed;
@@ -12,7 +12,7 @@
     }
     h2 {
       margin: 0 0 12px 0;
-      font-size: 16px;
+      font-size: 18px;
       background: linear-gradient(135deg, #00d4ff, #7b2ffc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -21,11 +21,15 @@
       padding: 10px;
       background: #111b2e;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 13px;
       border: 1px solid #1a2332;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       color: #8a9aae;
     }
+    .status.success { color: #00d4aa; border-color: #00d4aa; }
+    .status.error { color: #ff4757; border-color: #ff4757; }
+    .status.loading { color: #ffd700; border-color: #ffd700; }
+    
     .btn-group {
       display: flex;
       flex-direction: column;
@@ -33,59 +37,57 @@
     }
     .btn {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border: none;
       border-radius: 6px;
       font-weight: 600;
-      font-size: 13px;
+      font-size: 14px;
       cursor: pointer;
       transition: opacity 0.2s;
     }
     .btn:hover { opacity: 0.85; }
     .btn-primary { background: linear-gradient(135deg, #00d4ff, #7b2ffc); color: #fff; }
     .btn-success { background: #00d4aa; color: #000; }
-    .btn-warning { background: #ffd700; color: #000; }
-    .btn-danger { background: #ff4757; color: #fff; }
     .btn-secondary { background: #1a2332; color: #e0e6ed; border: 1px solid #2a3a52; }
-    .footer {
-      font-size: 10px;
-      color: #3d4a5f;
-      text-align: center;
-      margin-top: 12px;
-    }
-    .copy-box {
+    
+    .data-display {
       background: #0d1624;
       border: 1px solid #1a2332;
       border-radius: 4px;
-      padding: 8px;
+      padding: 10px;
+      margin-top: 10px;
       font-family: monospace;
-      font-size: 10px;
+      font-size: 11px;
       color: #8a9aae;
-      max-height: 100px;
+      max-height: 150px;
       overflow: auto;
-      margin-top: 8px;
       display: none;
       white-space: pre-wrap;
       word-break: break-all;
     }
-    .copy-box.show { display: block; }
+    .data-display.show { display: block; }
+    
+    .footer {
+      font-size: 10px;
+      color: #3d4a5f;
+      text-align: center;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <h2>📊 Nifty OI Tools</h2>
+  <h2>📊 Nifty OI → PineScript</h2>
   
-  <div class="status" id="status">✅ Extension is active</div>
+  <div class="status" id="status">⏳ Click button to fetch data</div>
   
   <div class="btn-group">
-    <button class="btn btn-primary" id="refreshBtn">🔄 Refresh Lines</button>
-    <button class="btn btn-success" id="copyConsoleBtn">📋 Copy Console Code</button>
-    <button class="btn btn-warning" id="copyFullBtn">📋 Copy Full Script</button>
-    <button class="btn btn-danger" id="clearBtn">🗑️ Clear All Lines</button>
+    <button class="btn btn-primary" id="fetchBtn">🔄 Fetch Data</button>
+    <button class="btn btn-success" id="copyBtn" disabled>📋 Copy PineScript Code</button>
   </div>
   
-  <div class="copy-box" id="copyBox"></div>
+  <div class="data-display" id="dataDisplay"></div>
   
-  <div class="footer" id="footer">v2.0 • Auto-updates every 10s</div>
+  <div class="footer">v2.0 • Data from Supabase</div>
   
   <script src="popup.js"></script>
 </body>
