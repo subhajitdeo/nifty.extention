@@ -1,94 +1,267 @@
-console.log("🚀 inject.js loaded");
+console.log("🚀 Nifty OI Injector loaded");
 
-console.log("📊 window.tvWidget:", window.tvWidget);
-console.log("📊 typeof tvWidget:", typeof tvWidget);
+// =============================================
+// STATE - Track all drawn lines
+// =============================================
 
-window.addEventListener("message", async (event) => {
-    if (event.source !== window) return;
-    if (event.data.type !== "DRAW_LINE") return;
+const shapes = {
+    ceSecondHighest: null,
+    peSecondHighest: null,
+    ceHighestVolume: null,
+    peHighestVolume: null,
+    buyEntry: null,
+    buySL: null,
+    buyTarget1: null,
+    buyTarget2: null,
+    sellEntry: null,
+    sellSL: null,
+    sellTarget1: null,
+    sellTarget2: null
+};
 
-    console.log("📨 Received message:", event.data);
+const lastValues = {
+    ceSecondHighest: null,
+    peSecondHighest: null,
+    ceHighestVolume: null,
+    peHighestVolume: null,
+    buyEntry: null,
+    buySL: null,
+    buyTarget1: null,
+    buyTarget2: null,
+    sellEntry: null,
+    sellSL: null,
+    sellTarget1: null,
+    sellTarget2: null
+};
 
-    // Try multiple ways to get the chart
-    let chart = null;
-    let widget = null;
+// =============================================
+// COLORS
+// =============================================
 
-    // Method 1: tvWidget
-    if (typeof tvWidget !== 'undefined') {
-        widget = tvWidget;
-        console.log("📊 Using tvWidget");
-    }
-    // Method 2: window.tvWidget
-    else if (window.tvWidget) {
-        widget = window.tvWidget;
-        console.log("📊 Using window.tvWidget");
-    }
-    // Method 3: window.__tvWidget (from earlier injection)
-    else if (window.__tvWidget) {
-        widget = window.__tvWidget;
-        console.log("📊 Using window.__tvWidget");
-    }
-    // Method 4: Search window for any object with activeChart
-    else {
-        console.log("🔍 Searching window for activeChart...");
+const COLORS = {
+    ceSecondHighest: '#FFD700',
+    peSecondHighest: '#FF8C00',
+    ceHighestVolume: '#2196F3',
+    peHighestVolume: '#9C27B0',
+    buyEntry: '#4CAF50',
+    buySL: '#4CAF50',
+    buyTarget1: '#4CAF50',
+    buyTarget2: '#4CAF50',
+    sellEntry: '#F44336',
+    sellSL: '#F44336',
+    sellTarget1: '#F44336',
+    sellTarget2: '#F44336'
+};
+
+const STYLES = {
+    solid: 0,
+    dotted: 1,
+    dashed: 2
+};
+
+// =============================================
+// GET CHART
+// =============================================
+
+function getChart() {
+    try {
+        // Try multiple ways
+        if (typeof tvWidget !== 'undefined' && tvWidget.activeChart) {
+            return tvWidget.activeChart();
+        }
+        if (window.tvWidget && window.tvWidget.activeChart) {
+            return window.tvWidget.activeChart();
+        }
+        if (window.__tvWidget && window.__tvWidget.activeChart) {
+            return window.__tvWidget.activeChart();
+        }
+        // Search window
         for (const key of Object.keys(window)) {
             try {
                 const obj = window[key];
                 if (obj && typeof obj === 'object' && typeof obj.activeChart === 'function') {
-                    widget = obj;
-                    console.log(`📊 Found widget on window.${key}`);
-                    break;
+                    return obj.activeChart();
                 }
             } catch (e) {}
         }
+        return null;
+    } catch (e) {
+        console.error("❌ Error getting chart:", e);
+        return null;
     }
+}
 
-    if (!widget) {
-        console.error("❌ No widget found!");
-        console.log("📊 window keys with 'tv' or 'chart':", 
-            Object.keys(window).filter(k => k.toLowerCase().includes('tv') || k.toLowerCase().includes('chart')));
-        return;
-    }
+// =============================================
+// DRAW LINE
+// =============================================
 
+function drawLine(price, color, style, label) {
+    if (!price || price === 0) return null;
+    
     try {
-        // Try activeChart first
-        if (typeof widget.activeChart === 'function') {
-            chart = widget.activeChart();
-            console.log("📊 Chart from activeChart():", chart);
-        }
-        // Try _innerAPI().activeChart()
-        else if (widget._innerAPI && typeof widget._innerAPI === 'function') {
-            const api = widget._innerAPI();
-            if (api && typeof api.activeChart === 'function') {
-                chart = api.activeChart();
-                console.log("📊 Chart from _innerAPI().activeChart():", chart);
-            }
-        }
-
+        const chart = getChart();
         if (!chart) {
-            console.error("❌ No chart found!");
-            return;
+            console.error("❌ No chart available");
+            return null;
         }
-
-        console.log("🎯 Attempting to draw line at", event.data.price);
-
-        const id = await chart.createShape(
+        
+        const id = chart.createShape(
             {
                 time: Math.floor(Date.now() / 1000),
-                price: event.data.price
+                price: price
             },
             {
                 shape: "horizontal_line",
-                text: event.data.label || "TEST"
+                text: label || "",
+                color: color,
+                lineStyle: style || 0,
+                linewidth: style === 1 ? 2 : style === 2 ? 1 : 2,
+                visible: true,
+                zorder: 10
             }
         );
-
-        console.log("✅ SUCCESS! Shape ID:", id);
-        console.log("📊 All shapes:", chart.getAllShapes());
-
+        
+        console.log(`✅ Drew: ${label} at ${price} (ID: ${id})`);
+        return id;
+        
     } catch (e) {
-        console.error("❌ DRAW ERROR:", e);
+        console.error(`❌ Failed to draw ${label}:`, e);
+        return null;
+    }
+}
+
+// =============================================
+// REMOVE LINE
+// =============================================
+
+function removeLine(id) {
+    if (!id) return;
+    try {
+        const chart = getChart();
+        if (chart) {
+            chart.removeEntity(id);
+            console.log(`🗑️ Removed line: ${id}`);
+        }
+    } catch (e) {
+        console.warn(`⚠️ Failed to remove line:`, e);
+    }
+}
+
+// =============================================
+// UPDATE LEVEL
+// =============================================
+
+function updateLevel(key, newValue, label, color, style) {
+    // If value is null/0, remove line
+    if (!newValue || newValue === 0) {
+        if (shapes[key]) {
+            removeLine(shapes[key]);
+            shapes[key] = null;
+        }
+        lastValues[key] = null;
+        return;
+    }
+    
+    // If value changed or shape doesn't exist
+    if (lastValues[key] !== newValue || !shapes[key]) {
+        // Remove old
+        if (shapes[key]) {
+            removeLine(shapes[key]);
+        }
+        // Draw new
+        const id = drawLine(newValue, color, style, `${label}: ${newValue}`);
+        shapes[key] = id;
+        lastValues[key] = newValue;
+    }
+}
+
+// =============================================
+// SYNC ALL LEVELS
+// =============================================
+
+function syncLevels(data) {
+    console.log("🔄 Syncing levels...");
+    
+    // OI Levels
+    updateLevel('ceSecondHighest', data.ceSecondHighest, 'CE 2nd', COLORS.ceSecondHighest, STYLES.dashed);
+    updateLevel('peSecondHighest', data.peSecondHighest, 'PE 2nd', COLORS.peSecondHighest, STYLES.dashed);
+    updateLevel('ceHighestVolume', data.ceHighestVolume, 'CE Vol', COLORS.ceHighestVolume, STYLES.solid);
+    updateLevel('peHighestVolume', data.peHighestVolume, 'PE Vol', COLORS.peHighestVolume, STYLES.solid);
+    
+    // Buy Levels
+    updateLevel('buyEntry', data.targets?.buy?.entry, 'Buy Entry', COLORS.buyEntry, STYLES.solid);
+    updateLevel('buySL', data.targets?.buy?.sl, 'Buy SL', COLORS.buySL, STYLES.dotted);
+    updateLevel('buyTarget1', data.targets?.buy?.target1, 'Buy T1', COLORS.buyTarget1, STYLES.dashed);
+    updateLevel('buyTarget2', data.targets?.buy?.target2, 'Buy T2', COLORS.buyTarget2, STYLES.dashed);
+    
+    // Sell Levels
+    updateLevel('sellEntry', data.targets?.sell?.entry, 'Sell Entry', COLORS.sellEntry, STYLES.solid);
+    updateLevel('sellSL', data.targets?.sell?.sl, 'Sell SL', COLORS.sellSL, STYLES.dotted);
+    updateLevel('sellTarget1', data.targets?.sell?.target1, 'Sell T1', COLORS.sellTarget1, STYLES.dashed);
+    updateLevel('sellTarget2', data.targets?.sell?.target2, 'Sell T2', COLORS.sellTarget2, STYLES.dashed);
+    
+    console.log("✅ All levels synced");
+}
+
+// =============================================
+// FETCH DATA FROM SUPABASE
+// =============================================
+
+async function fetchData() {
+    try {
+        const response = await fetch('https://kdneyzemvqzhwzztflvq.supabase.co/functions/v1/process-data');
+        const json = await response.json();
+        
+        if (json.success) {
+            console.log("📊 Data fetched:", json.data);
+            syncLevels(json.data);
+        } else {
+            console.error("❌ API error:", json);
+        }
+    } catch (e) {
+        console.error("❌ Fetch error:", e);
+    }
+}
+
+// =============================================
+// LISTEN FOR MESSAGES
+// =============================================
+
+window.addEventListener("message", async (event) => {
+    if (event.source !== window) return;
+    
+    if (event.data.type === "DRAW_LINE") {
+        console.log("📨 Drawing single line:", event.data);
+        const chart = getChart();
+        if (chart) {
+            try {
+                const id = chart.createShape(
+                    { time: Math.floor(Date.now()/1000), price: event.data.price },
+                    { shape: "horizontal_line", text: event.data.label || "TEST" }
+                );
+                console.log("✅ SUCCESS:", id);
+            } catch (e) {
+                console.error("❌ Draw error:", e);
+            }
+        }
+        return;
+    }
+    
+    if (event.data.type === "FETCH_AND_DRAW") {
+        console.log("📨 Fetching and drawing...");
+        await fetchData();
+        return;
     }
 });
 
-console.log("✅ inject.js ready, waiting for messages...");
+// =============================================
+// AUTO-FETCH ON LOAD
+// =============================================
+
+console.log("⏳ Waiting 3 seconds before initial fetch...");
+setTimeout(fetchData, 3000);
+
+// Also fetch every 10 seconds
+setInterval(fetchData, 10000);
+
+console.log("✅ Nifty OI Injector ready!");
