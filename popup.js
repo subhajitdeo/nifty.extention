@@ -21,9 +21,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 dataDisplay.textContent = JSON.stringify(currentData, null, 2);
                 dataDisplay.className = 'data-display show';
             } else {
-                status.textContent = 'Failed to fetch data: ' + (response?.error || 'Unknown error');
+                var errorMsg = response?.error || 'Unknown error';
+                status.textContent = 'Failed to fetch: ' + errorMsg;
                 status.className = 'status error';
                 currentData = null;
+                
+                dataDisplay.textContent = 'Error: ' + errorMsg;
+                dataDisplay.className = 'data-display show';
             }
         });
     });
@@ -38,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var code = generatePineScript(currentData);
         
         navigator.clipboard.writeText(code).then(function() {
-            status.textContent = 'PineScript code copied to clipboard!';
+            status.textContent = 'PineScript code copied!';
             status.className = 'status success';
         }).catch(function() {
             var textarea = document.createElement('textarea');
@@ -47,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
             textarea.select();
             document.execCommand('copy');
             textarea.remove();
-            status.textContent = 'PineScript code copied to clipboard!';
+            status.textContent = 'PineScript code copied!';
             status.className = 'status success';
         });
     });
@@ -55,44 +59,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function generatePineScript(data) {
     var targets = data.targets;
-    var ceSecond = data.ceSecondHighest || 0;
-    var peSecond = data.peSecondHighest || 0;
-    var ceVol = data.ceHighestVolume || 0;
-    var peVol = data.peHighestVolume || 0;
     
     var buyEntry = targets?.buy?.entry || 0;
     var buySL = targets?.buy?.sl || 0;
     var buyT1 = targets?.buy?.target1 || 0;
     var buyT2 = targets?.buy?.target2 || 0;
-    var buyT3 = buyT2 + 50 || 0;
+    var buyT3 = targets?.buy?.target3 || 0;
     
     var sellEntry = targets?.sell?.entry || 0;
     var sellSL = targets?.sell?.sl || 0;
     var sellT1 = targets?.sell?.target1 || 0;
     var sellT2 = targets?.sell?.target2 || 0;
-    var sellT3 = sellT2 - 50 || 0;
+    var sellT3 = targets?.sell?.target3 || 0;
     
     return '//@version=6\n' +
            'indicator("Nifty OI Levels", overlay=true)\n\n' +
            '// =============================================\n' +
            '// LIVE DATA FROM SUPABASE\n' +
            '// =============================================\n\n' +
-           '// OI Levels (for reference)\n' +
-           '// CE 2nd Highest: ' + ceSecond + '\n' +
-           '// PE 2nd Highest: ' + peSecond + '\n' +
-           '// CE Highest Volume: ' + ceVol + '\n' +
-           '// PE Highest Volume: ' + peVol + '\n\n' +
-           '// =============================================\n' +
            '// BUY LEVELS\n' +
-           '// =============================================\n\n' +
            'buyEntry = input.float(' + buyEntry + ', "Buy Entry")\n' +
            'buySL = input.float(' + buySL + ', "Buy SL")\n' +
            'buyTarget1 = input.float(' + buyT1 + ', "Buy Target 1")\n' +
            'buyTarget2 = input.float(' + buyT2 + ', "Buy Target 2")\n' +
            'buyTarget3 = input.float(' + buyT3 + ', "Buy Target 3")\n\n' +
-           '// =============================================\n' +
            '// SELL LEVELS\n' +
-           '// =============================================\n\n' +
            'sellEntry = input.float(' + sellEntry + ', "Sell Entry")\n' +
            'sellSL = input.float(' + sellSL + ', "Sell SL")\n' +
            'sellTarget1 = input.float(' + sellT1 + ', "Sell Target 1")\n' +
