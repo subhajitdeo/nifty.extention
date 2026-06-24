@@ -1,56 +1,31 @@
-console.log("===== INJECTED SCRIPT =====");
+console.clear();
 
-let tries = 0;
+console.log("===== HOOK TEST =====");
 
-const timer = setInterval(() => {
+const originalDefine = Object.defineProperty;
 
-    tries++;
+Object.defineProperty = function(obj, prop, descriptor) {
 
-    console.log("Attempt", tries);
-
-    console.log("typeof tvWidget =", typeof tvWidget);
-
-    if (typeof tvWidget !== "undefined") {
-
-        clearInterval(timer);
-
-        console.log("FOUND tvWidget");
-
-        console.log(tvWidget);
-
-        (async () => {
-
-            try {
-
-                const id = await tvWidget.activeChart().createShape(
-                    {
-                        time: Math.floor(Date.now() / 1000),
-                        price: 24200
-                    },
-                    {
-                        shape: "horizontal_line",
-                        text: "INJECT TEST"
-                    }
-                );
-
-                console.log("SUCCESS", id);
-
-            } catch (e) {
-
-                console.error(e);
-
-            }
-
-        })();
-
+    if (obj === window && prop === "tvWidget") {
+        console.log("tvWidget is being defined!");
+        console.log(descriptor);
+        debugger;
     }
 
-    if (tries > 30) {
+    return originalDefine.call(this, obj, prop, descriptor);
+};
 
-        clearInterval(timer);
+const interval = setInterval(() => {
 
-        console.log("FAILED");
-
+    if ("tvWidget" in window) {
+        console.log("window has tvWidget");
+        console.log(window.tvWidget);
+        clearInterval(interval);
     }
 
-},1000);
+}, 500);
+
+setTimeout(() => {
+    clearInterval(interval);
+    console.log("Finished waiting.");
+}, 30000);
