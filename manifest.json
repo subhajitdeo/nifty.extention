@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Nifty OI Levels Injector",
+  "version": "1.0",
+  "description": "Automatically injects Nifty OI levels from Supabase into TradingView",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://kdneyzemvqzhwzztflvq.supabase.co/*",
+    "https://www.tradingview.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Nifty OI Levels"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.tradingview.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
