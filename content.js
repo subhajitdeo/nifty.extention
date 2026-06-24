@@ -1,26 +1,21 @@
-console.log("content.js loaded");
+console.log("📦 content.js loaded");
 
-const s = document.createElement("script");
-s.src = chrome.runtime.getURL("inject.js");
+// Inject inject.js into page
+const script = document.createElement("script");
+script.src = chrome.runtime.getURL("inject.js");
 
-console.log("inject.js URL:", s.src);
-
-(document.head || document.documentElement).appendChild(s);
-
-s.onload = () => {
-    console.log("✅ inject.js loaded and executed");
-    s.remove();
-
+script.onload = () => {
+    console.log("✅ inject.js injected");
+    script.remove();
+    
+    // Tell inject.js to fetch data
     setTimeout(() => {
-        console.log("📤 Posting message to inject.js...");
-        window.postMessage({
-            type: "DRAW_LINE",
-            price: 24200,
-            label: "TEST FROM EXTENSION"
-        }, "*");
-    }, 3000);
+        window.postMessage({ type: "FETCH_AND_DRAW" }, "*");
+    }, 1000);
 };
 
-s.onerror = (e) => {
-    console.error("❌ Failed to load inject.js:", e);
+script.onerror = (e) => {
+    console.error("❌ Failed to inject:", e);
 };
+
+(document.head || document.documentElement).appendChild(script);
