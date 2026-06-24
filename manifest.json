@@ -1,49 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "Nifty OI Levels - Native API",
+  "name": "Nifty OI - Inject Test",
   "version": "2.0",
-  "description": "Draws Nifty OI levels using TradingView Charting Library API",
-
-  "permissions": [
-    "storage",
-    "tabs"
-  ],
-
+  "description": "Test inject.js approach",
+  "permissions": [],
   "host_permissions": [
-    "https://kdneyzemvqzhwzztflvq.supabase.co/*",
     "https://charting.nseindia.com/*"
   ],
-
-  "background": {
-    "service_worker": "background.js"
-  },
-
-  "action": {
-    "default_popup": "popup.html",
-    "default_title": "Nifty OI Levels"
-  },
-
-  "content_scripts": [
-    {
-      "matches": [
-        "https://charting.nseindia.com/*"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "run_at": "document_idle",
-      "world": "MAIN"
-    }
-  ],
-
   "web_accessible_resources": [
     {
-      "resources": [
-        "inject.js"
-      ],
-      "matches": [
-        "https://charting.nseindia.com/*"
-      ]
+      "resources": ["inject.js"],
+      "matches": ["https://charting.nseindia.com/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://charting.nseindia.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
   ]
 }
