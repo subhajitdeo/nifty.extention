@@ -1,14 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Nifty OI Levels - Native API",
+  "name": "Nifty OI Levels - Test",
   "version": "2.0",
-  "description": "Draws Nifty OI levels using TradingView Charting Library API",
+  "description": "Minimal test version",
   "permissions": [
-    "storage",
-    "tabs"
+    "storage"
   ],
   "host_permissions": [
-    "https://kdneyzemvqzhwzztflvq.supabase.co/*",
     "https://charting.nseindia.com/*"
   ],
   "background": {
@@ -16,13 +14,14 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Nifty OI Levels"
+    "default_title": "Test"
   },
   "content_scripts": [
     {
       "matches": ["https://charting.nseindia.com/*"],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "world": "MAIN"
     }
   ]
 }
