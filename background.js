@@ -1,11 +1,11 @@
 // =============================================
-// BACKGROUND SERVICE WORKER - PROXY
+// BACKGROUND SERVICE WORKER
 // =============================================
 
-console.log("✅ Background service worker started");
+console.log("✅ Background started");
 
 // =============================================
-// FETCH DATA FROM SUPABASE (PROXY)
+// FETCH DATA FROM SUPABASE
 // =============================================
 
 async function fetchSupabaseData() {
@@ -14,7 +14,7 @@ async function fetchSupabaseData() {
         const json = await response.json();
         return json;
     } catch (e) {
-        console.error("❌ Background fetch error:", e);
+        console.error("❌ Fetch error:", e);
         return null;
     }
 }
@@ -24,14 +24,6 @@ async function fetchSupabaseData() {
 // =============================================
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-    
-    // Ping test
-    if (request.action === 'ping') {
-        sendResponse({ success: true, message: 'pong' });
-        return true;
-    }
-    
-    // PROXY: Fetch data from Supabase (bypasses CSP)
     if (request.action === 'fetchData') {
         fetchSupabaseData().then(function(data) {
             if (data && data.success) {
@@ -39,20 +31,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             } else {
                 sendResponse({ success: false, error: 'Failed to fetch' });
             }
-        });
-        return true; // Keep channel open for async response
-    }
-    
-    // Get status for popup
-    if (request.action === 'getStatus') {
-        chrome.tabs.query({ url: 'https://charting.nseindia.com/*' }, function(tabs) {
-            const isOpen = tabs.length > 0;
-            sendResponse({ 
-                success: true, 
-                isChartOpen: isOpen,
-                tabCount: tabs.length,
-                message: isOpen ? 'NSE chart detected' : 'Open NSE chart first'
-            });
         });
         return true;
     }
