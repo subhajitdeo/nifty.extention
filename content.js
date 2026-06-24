@@ -1,7 +1,27 @@
+console.clear();
+
+console.log("Content script loaded");
+
 const script = document.createElement("script");
 
-script.src = chrome.runtime.getURL("inject.js");
+script.textContent = `
+    console.log("===== PAGE SCRIPT =====");
 
-document.documentElement.appendChild(script);
+    console.log("window.tvWidget =", window.tvWidget);
 
-script.onload = () => script.remove();
+    console.log("typeof tvWidget =", typeof tvWidget);
+
+    if(window.tvWidget){
+
+        console.log("SUCCESS PAGE");
+
+    }else{
+
+        console.log("FAILED PAGE");
+
+    }
+`;
+
+(document.head || document.documentElement).appendChild(script);
+
+script.remove();
