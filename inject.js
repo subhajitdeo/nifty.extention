@@ -1,31 +1,30 @@
-console.clear();
+(function () {
 
-console.log("===== HOOK TEST =====");
+    console.log("Injected script loaded");
 
-const originalDefine = Object.defineProperty;
+    window.addEventListener("message", async (event) => {
 
-Object.defineProperty = function(obj, prop, descriptor) {
+        if (event.source !== window) return;
+        if (event.data.type !== "DRAW_LINE") return;
 
-    if (obj === window && prop === "tvWidget") {
-        console.log("tvWidget is being defined!");
-        console.log(descriptor);
-        debugger;
-    }
+        const chart = window.tvWidget._innerAPI().activeChart();
 
-    return originalDefine.call(this, obj, prop, descriptor);
-};
+        const id = await chart.createShape(
+            {
+                time: Math.floor(Date.now()/1000),
+                price: event.data.price
+            },
+            {
+                shape: "horizontal_line",
+                text: event.data.label
+            }
+        );
 
-const interval = setInterval(() => {
+        window.postMessage({
+            type: "DRAW_SUCCESS",
+            id
+        });
 
-    if ("tvWidget" in window) {
-        console.log("window has tvWidget");
-        console.log(window.tvWidget);
-        clearInterval(interval);
-    }
+    });
 
-}, 500);
-
-setTimeout(() => {
-    clearInterval(interval);
-    console.log("Finished waiting.");
-}, 30000);
+})();
