@@ -1,17 +1,12 @@
-console.clear();
+const script = document.createElement("script");
+script.src = chrome.runtime.getURL("inject.js");
 
-console.log("===== CONTENT SCRIPT =====");
+(document.head || document.documentElement).appendChild(script);
 
-console.log("location:", location.href);
+script.onload = () => script.remove();
 
-console.log("window === globalThis", window === globalThis);
-
-console.log("chrome.runtime.id =", chrome.runtime.id);
-
-console.log("document.currentScript =", document.currentScript);
-
-console.log("Execution test");
-
-window.__EXTENSION_TEST__ = 12345;
-
-console.log("window.__EXTENSION_TEST__ =", window.__EXTENSION_TEST__);
+window.postMessage({
+    type: "DRAW_LINE",
+    price: 24200,
+    label: "TEST"
+});
