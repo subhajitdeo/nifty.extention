@@ -65,7 +65,6 @@ const STYLES = {
 
 function getChart() {
     try {
-        // Try multiple ways
         if (typeof tvWidget !== 'undefined' && tvWidget.activeChart) {
             return tvWidget.activeChart();
         }
@@ -75,7 +74,6 @@ function getChart() {
         if (window.__tvWidget && window.__tvWidget.activeChart) {
             return window.__tvWidget.activeChart();
         }
-        // Search window
         for (const key of Object.keys(window)) {
             try {
                 const obj = window[key];
@@ -152,7 +150,6 @@ function removeLine(id) {
 // =============================================
 
 function updateLevel(key, newValue, label, color, style) {
-    // If value is null/0, remove line
     if (!newValue || newValue === 0) {
         if (shapes[key]) {
             removeLine(shapes[key]);
@@ -162,13 +159,10 @@ function updateLevel(key, newValue, label, color, style) {
         return;
     }
     
-    // If value changed or shape doesn't exist
     if (lastValues[key] !== newValue || !shapes[key]) {
-        // Remove old
         if (shapes[key]) {
             removeLine(shapes[key]);
         }
-        // Draw new
         const id = drawLine(newValue, color, style, `${label}: ${newValue}`);
         shapes[key] = id;
         lastValues[key] = newValue;
@@ -182,19 +176,16 @@ function updateLevel(key, newValue, label, color, style) {
 function syncLevels(data) {
     console.log("🔄 Syncing levels...");
     
-    // OI Levels
     updateLevel('ceSecondHighest', data.ceSecondHighest, 'CE 2nd', COLORS.ceSecondHighest, STYLES.dashed);
     updateLevel('peSecondHighest', data.peSecondHighest, 'PE 2nd', COLORS.peSecondHighest, STYLES.dashed);
     updateLevel('ceHighestVolume', data.ceHighestVolume, 'CE Vol', COLORS.ceHighestVolume, STYLES.solid);
     updateLevel('peHighestVolume', data.peHighestVolume, 'PE Vol', COLORS.peHighestVolume, STYLES.solid);
     
-    // Buy Levels
     updateLevel('buyEntry', data.targets?.buy?.entry, 'Buy Entry', COLORS.buyEntry, STYLES.solid);
     updateLevel('buySL', data.targets?.buy?.sl, 'Buy SL', COLORS.buySL, STYLES.dotted);
     updateLevel('buyTarget1', data.targets?.buy?.target1, 'Buy T1', COLORS.buyTarget1, STYLES.dashed);
     updateLevel('buyTarget2', data.targets?.buy?.target2, 'Buy T2', COLORS.buyTarget2, STYLES.dashed);
     
-    // Sell Levels
     updateLevel('sellEntry', data.targets?.sell?.entry, 'Sell Entry', COLORS.sellEntry, STYLES.solid);
     updateLevel('sellSL', data.targets?.sell?.sl, 'Sell SL', COLORS.sellSL, STYLES.dotted);
     updateLevel('sellTarget1', data.targets?.sell?.target1, 'Sell T1', COLORS.sellTarget1, STYLES.dashed);
@@ -252,6 +243,24 @@ window.addEventListener("message", async (event) => {
         await fetchData();
         return;
     }
+    
+    // ✅ NEW: Clear all lines
+    if (event.data.type === "CLEAR_LINES") {
+        console.log("🗑️ Clearing all lines...");
+        const chart = getChart();
+        if (chart) {
+            const allShapes = chart.getAllShapes() || [];
+            allShapes.forEach(s => {
+                try { chart.removeEntity(s.id); } catch(e) {}
+            });
+            for (const key of Object.keys(shapes)) {
+                shapes[key] = null;
+                lastValues[key] = null;
+            }
+            console.log("✅ All lines cleared");
+        }
+        return;
+    }
 });
 
 // =============================================
@@ -261,7 +270,6 @@ window.addEventListener("message", async (event) => {
 console.log("⏳ Waiting 3 seconds before initial fetch...");
 setTimeout(fetchData, 3000);
 
-// Also fetch every 10 seconds
 setInterval(fetchData, 10000);
 
 console.log("✅ Nifty OI Injector ready!");
