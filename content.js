@@ -1,215 +1,198 @@
 // =============================================
-// CONTENT SCRIPT - PURE DIAGNOSTIC
-// NO DRAWING, ONLY LOGGING
+// CONTENT SCRIPT - WORKING VERSION
 // =============================================
 
-console.log("========================================");
-console.log("🔬 CONTENT SCRIPT DIAGNOSTIC STARTED");
-console.log("========================================");
+console.log("🚀 CONTENT SCRIPT STARTED");
 
 // =============================================
-// 1. BASIC CONTEXT INFORMATION
+// WAIT FOR TVWIDGET
 // =============================================
 
-console.log("📍 document.location.href:", document.location.href);
-console.log("📍 document.readyState:", document.readyState);
-
-// =============================================
-// 2. CHROME EXTENSION CONTEXT
-// =============================================
-
-console.log("🔧 chrome.runtime.id:", chrome.runtime.id);
-
-// Try to determine execution world
-try {
-    // If this throws, we're not in MAIN world
-    const test = window.__TEST__;
-    console.log("🔧 Execution world: MAIN (window.__TEST__ accessible)");
-} catch (e) {
-    console.log("🔧 Execution world: ISOLATED (window.__TEST__ not accessible)");
+function waitForTvWidget() {
+    return new Promise((resolve) => {
+        let attempts = 0;
+        const maxAttempts = 30;
+        
+        const check = setInterval(() => {
+            attempts++;
+            
+            // Try multiple ways to find tvWidget
+            let widget = null;
+            if (typeof tvWidget !== 'undefined') {
+                widget = tvWidget;
+            } else if (window.tvWidget) {
+                widget = window.tvWidget;
+            }
+            
+            if (widget && widget.activeChart) {
+                clearInterval(check);
+                console.log("✅ tvWidget found!");
+                resolve(widget);
+                return;
+            }
+            
+            if (attempts >= maxAttempts) {
+                clearInterval(check);
+                console.log("❌ tvWidget not found after 30 attempts");
+                resolve(null);
+            }
+        }, 1000);
+    });
 }
 
-// Check if we're in page context
-console.log("🔧 Is this running in page context?", window === window.top ? "Yes (top)" : "No (iframe)");
-
 // =============================================
-// 3. TVWIDGET DETECTION (EVERY SECOND)
+// WAIT FOR CHART READY
 // =============================================
 
-let attempt = 0;
-const maxAttempts = 30;
+function waitForChartReady(chart) {
+    return new Promise((resolve) => {
+        if (typeof chart.whenChartReady === 'function') {
+            console.log("⏳ Waiting for chart.whenChartReady...");
+            chart.whenChartReady(() => {
+                console.log("✅ Chart ready!");
+                resolve();
+            });
+        } else {
+            console.log("⏳ No whenChartReady, waiting 2 seconds...");
+            setTimeout(resolve, 2000);
+        }
+    });
+}
 
-function checkTvWidget() {
-    attempt++;
-    
-    console.log(`\n--- Attempt #${attempt} ---`);
-    console.log(`⏰ Time: ${new Date().toLocaleTimeString()}`);
-    
-    // Check all possible ways tvWidget might exist
-    console.log("📊 typeof tvWidget:", typeof tvWidget);
-    console.log("📊 window.tvWidget:", window.tvWidget);
-    console.log("📊 typeof window.tvWidget:", typeof window.tvWidget);
-    
-    // Check if it's in the window object's keys
-    if (window) {
-        const keys = Object.keys(window);
-        const tvKeys = keys.filter(k => k.toLowerCase().includes('tv') || k.toLowerCase().includes('chart'));
-        console.log("📊 Window keys containing 'tv' or 'chart':", tvKeys.slice(0, 10));
-        
-        // Check for any object with activeChart method
-        let foundChart = false;
-        for (const key of keys) {
-            try {
-                const obj = window[key];
-                if (obj && typeof obj === 'object' && typeof obj.activeChart === 'function') {
-                    console.log(`📊 Found activeChart on window.${key}`);
-                    foundChart = true;
-                }
-            } catch (e) {
-                // ignore
-            }
+// =============================================
+// DRAW HORIZONTAL LINE
+// =============================================
+
+async function drawHorizontalLine(price, label) {
+    try {
+        const widget = await waitForTvWidget();
+        if (!widget) {
+            console.error("❌ No tvWidget!");
+            return null;
         }
         
-        if (!foundChart) {
-            console.log("📊 No object with activeChart found on window");
+        const chart = widget.activeChart();
+        if (!chart) {
+            console.error("❌ No active chart!");
+            return null;
+        }
+        
+        // ✅ CRITICAL: Wait for chart to be ready
+        await waitForChartReady(chart);
+        
+        const id = chart.createShape(
+            {
+                time: Math.floor(Date.now() / 1000),
+                price: price
+            },
+            {
+                shape: "horizontal_line",
+                text: label || "TEST"
+            }
+        );
+        
+        console.log("✅ Line drawn! ID:", id);
+        return id;
+        
+    } catch (e) {
+        console.error("❌ DRAW ERROR:", e);
+        return null;
+    }
+}
+
+// =============================================
+// DRAW ALL LEVELS FROM DATA
+// =============================================
+
+async function drawAllLevels(data) {
+    console.log("📊 Drawing all levels...");
+    
+    const levels = [
+        { key: 'ceSecondHighest', price: data.ceSecondHighest, label: 'CE 2nd' },
+        { key: 'peSecondHighest', price: data.peSecondHighest, label: 'PE 2nd' },
+        { key: 'ceHighestVolume', price: data.ceHighestVolume, label: 'CE Vol' },
+        { key: 'peHighestVolume', price: data.peHighestVolume, label: 'PE Vol' },
+        { key: 'buyEntry', price: data.targets?.buy?.entry, label: 'Buy Entry' },
+        { key: 'buySL', price: data.targets?.buy?.sl, label: 'Buy SL' },
+        { key: 'buyTarget1', price: data.targets?.buy?.target1, label: 'Buy T1' },
+        { key: 'buyTarget2', price: data.targets?.buy?.target2, label: 'Buy T2' },
+        { key: 'sellEntry', price: data.targets?.sell?.entry, label: 'Sell Entry' },
+        { key: 'sellSL', price: data.targets?.sell?.sl, label: 'Sell SL' },
+        { key: 'sellTarget1', price: data.targets?.sell?.target1, label: 'Sell T1' },
+        { key: 'sellTarget2', price: data.targets?.sell?.target2, label: 'Sell T2' }
+    ];
+    
+    for (const level of levels) {
+        if (level.price && level.price > 0) {
+            console.log(`📊 Drawing ${level.label} at ${level.price}`);
+            await drawHorizontalLine(level.price, level.label + ': ' + level.price);
         }
     }
-    
-    // Check if tvWidget exists and has activeChart
-    let tvWidgetExists = false;
-    let hasActiveChart = false;
-    let chartExists = false;
-    let hasWhenChartReady = false;
-    
+}
+
+// =============================================
+// TEST - DRAW TEST LINE
+// =============================================
+
+async function testDraw() {
+    console.log("🧪 Starting test draw...");
+    const id = await drawHorizontalLine(24200, "TEST LINE");
+    if (id) {
+        console.log("✅ TEST LINE DRAWN SUCCESSFULLY!");
+    } else {
+        console.log("❌ Test line failed");
+    }
+}
+
+// =============================================
+// FETCH DATA FROM SUPABASE
+// =============================================
+
+async function fetchAndDrawLevels() {
     try {
-        if (typeof tvWidget !== 'undefined') {
-            tvWidgetExists = true;
-            console.log("📊 tvWidget exists");
-            
-            if (typeof tvWidget.activeChart === 'function') {
-                hasActiveChart = true;
-                console.log("📊 tvWidget.activeChart is a function");
-                
-                const chart = tvWidget.activeChart();
-                if (chart) {
-                    chartExists = true;
-                    console.log("📊 activeChart() returned:", chart);
-                    console.log("📊 Chart constructor:", chart.constructor.name);
-                    
-                    if (typeof chart.whenChartReady === 'function') {
-                        hasWhenChartReady = true;
-                        console.log("📊 chart.whenChartReady exists");
-                    } else {
-                        console.log("📊 chart.whenChartReady does NOT exist");
-                    }
-                } else {
-                    console.log("📊 activeChart() returned null/undefined");
-                }
-            } else {
-                console.log("📊 tvWidget.activeChart is NOT a function");
-            }
+        const response = await fetch('https://kdneyzemvqzhwzztflvq.supabase.co/functions/v1/process-data');
+        const json = await response.json();
+        
+        if (json.success) {
+            console.log("📊 Data fetched:", json.data);
+            await drawAllLevels(json.data);
         } else {
-            console.log("📊 tvWidget is undefined");
+            console.error("❌ API returned error:", json);
         }
     } catch (e) {
-        console.error("📊 Error checking tvWidget:", e);
-    }
-    
-    // Check TradingView global
-    console.log("📊 typeof TradingView:", typeof TradingView);
-    if (typeof TradingView !== 'undefined') {
-        console.log("📊 TradingView:", TradingView);
-        console.log("📊 TradingView.widget:", TradingView.widget);
-    }
-    
-    // =============================================
-    // 4. IF TVWIDGET FOUND, TEST CHART READY
-    // =============================================
-    
-    if (tvWidgetExists && hasActiveChart) {
-        console.log("\n🟢 tvWidget is available! Testing chart ready...");
-        
-        try {
-            const chart = tvWidget.activeChart();
-            
-            if (chart && typeof chart.whenChartReady === 'function') {
-                console.log("⏳ Calling whenChartReady...");
-                chart.whenChartReady(function() {
-                    console.log("✅ Chart Ready! (whenChartReady callback fired)");
-                    
-                    // Now try to create a shape
-                    console.log("🎯 Attempting to create shape...");
-                    
-                    try {
-                        const id = chart.createShape(
-                            {
-                                time: Math.floor(Date.now() / 1000),
-                                price: 24200
-                            },
-                            {
-                                shape: "horizontal_line",
-                                text: "TEST"
-                            }
-                        );
-                        
-                        console.log("✅ Shape created! ID:", id);
-                        console.log("📊 All shapes:", chart.getAllShapes());
-                        
-                    } catch (e) {
-                        console.error("❌ Failed to create shape:", e);
-                    }
-                });
-            } else {
-                console.log("⚠️ chart.whenChartReady is not available, trying direct create...");
-                
-                // Try direct creation as fallback
-                try {
-                    const id = chart.createShape(
-                        {
-                            time: Math.floor(Date.now() / 1000),
-                            price: 24200
-                        },
-                        {
-                            shape: "horizontal_line",
-                            text: "TEST"
-                        }
-                    );
-                    
-                    console.log("✅ Direct shape creation succeeded! ID:", id);
-                    
-                } catch (e) {
-                    console.error("❌ Direct shape creation failed:", e);
-                }
-            }
-            
-        } catch (e) {
-            console.error("❌ Error in chart test:", e);
-        }
-    }
-    
-    // =============================================
-    // 5. CONTINUE OR STOP
-    // =============================================
-    
-    if (attempt < maxAttempts) {
-        setTimeout(checkTvWidget, 1000);
-    } else {
-        console.log("\n========================================");
-        console.log("🔬 DIAGNOSTIC COMPLETE - MAX ATTEMPTS REACHED");
-        console.log("========================================");
-        console.log("Summary:");
-        console.log(`- tvWidget exists: ${tvWidgetExists}`);
-        console.log(`- hasActiveChart: ${hasActiveChart}`);
-        console.log(`- chartExists: ${chartExists}`);
-        console.log(`- hasWhenChartReady: ${hasWhenChartReady}`);
-        console.log(`- Execution world: ${window === window.top ? 'Main' : 'Isolated'}`);
-        console.log("========================================");
+        console.error("❌ Failed to fetch data:", e);
     }
 }
 
 // =============================================
-// 6. START DIAGNOSTIC
+// LISTEN FOR MESSAGES
 // =============================================
 
-console.log("\n⏳ Starting diagnostic checks...\n");
-setTimeout(checkTvWidget, 1000);
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'testDraw') {
+        testDraw();
+        sendResponse({ success: true });
+        return true;
+    }
+    
+    if (request.action === 'drawLevels') {
+        fetchAndDrawLevels();
+        sendResponse({ success: true });
+        return true;
+    }
+});
+
+// =============================================
+// AUTO-RUN ON PAGE LOAD
+// =============================================
+
+// Wait for page to be fully loaded
+if (document.readyState === 'complete') {
+    setTimeout(testDraw, 2000);
+} else {
+    window.addEventListener('load', () => {
+        setTimeout(testDraw, 2000);
+    });
+}
+
+console.log("✅ Content script loaded. Test will run automatically.");
