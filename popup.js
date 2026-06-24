@@ -2,238 +2,164 @@
 // POPUP SCRIPT
 // =============================================
 
+let currentData = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     const status = document.getElementById('status');
-    const copyBox = document.getElementById('copyBox');
+    const fetchBtn = document.getElementById('fetchBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const dataDisplay = document.getElementById('dataDisplay');
     
     // =============================================
-    // 1. REFRESH LINES
+    // FETCH DATA
     // =============================================
-    document.getElementById('refreshBtn').addEventListener('click', function() {
-        status.textContent = 'Refreshing...';
-        sendToTab({ action: 'refreshLines' }, function(response) {
-            status.textContent = response?.success ? 'Lines refreshed!' : 'Failed to refresh';
-        });
-    });
-    
-    // =============================================
-    // 2. COPY CONSOLE CODE
-    // =============================================
-    document.getElementById('copyConsoleBtn').addEventListener('click', function() {
-        const code = generateConsoleCode();
-        copyToClipboard(code);
-        copyBox.textContent = code;
-        copyBox.className = 'copy-box show';
-        status.textContent = 'Code copied! Paste in console.';
+    fetchBtn.addEventListener('click', function() {
+        status.textContent = '⏳ Fetching data...';
+        status.className = 'status loading';
+        copyBtn.disabled = true;
+        dataDisplay.className = 'data-display';
         
-        setTimeout(function() {
-            copyBox.className = 'copy-box';
-        }, 10000);
-    });
-    
-    // =============================================
-    // 3. COPY FULL SCRIPT
-    // =============================================
-    document.getElementById('copyFullBtn').addEventListener('click', function() {
-        const code = generateFullScript();
-        copyToClipboard(code);
-        copyBox.textContent = code.substring(0, 500) + '... (full copied)';
-        copyBox.className = 'copy-box show';
-        status.textContent = 'Full script copied! Paste in console.';
-        
-        setTimeout(function() {
-            copyBox.className = 'copy-box';
-        }, 10000);
-    });
-    
-    // =============================================
-    // 4. CLEAR ALL LINES
-    // =============================================
-    document.getElementById('clearBtn').addEventListener('click', function() {
-        status.textContent = 'Clearing...';
-        sendToTab({ action: 'clearLines' }, function(response) {
-            status.textContent = response?.success ? 'All lines cleared!' : 'Failed to clear';
-        });
-    });
-    
-    // =============================================
-    // HELPER: Send message to content script
-    // =============================================
-    function sendToTab(message, callback) {
-        chrome.tabs.query({ url: 'https://charting.nseindia.com/*' }, function(tabs) {
-            if (tabs.length === 0) {
-                status.textContent = 'Open NSE chart first!';
-                if (callback) callback({ success: false });
-                return;
+        chrome.runtime.sendMessage({ action: 'fetchData' }, function(response) {
+            if (response && response.success) {
+                currentData = response.data;
+                status.textContent = '✅ Data fetched successfully!';
+                status.className = 'status success';
+                copyBtn.disabled = false;
+                
+                // Show data preview
+                dataDisplay.textContent = JSON.stringify(currentData, null, 2);
+                dataDisplay.className = 'data-display show';
+                
+                console.log('📊 Data:', currentData);
+            } else {
+                status.textContent = '❌ Failed to fetch data: ' + (response?.error || 'Unknown error');
+                status.className = 'status error';
+                currentData = null;
             }
-            chrome.tabs.sendMessage(tabs[0].id, message, function(response) {
-                if (callback) callback(response || { success: false });
-            });
         });
-    }
+    });
     
     // =============================================
-    // HELPER: Copy to clipboard
+    // COPY PINESCRIPT CODE
     // =============================================
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).catch(function() {
-            var textarea = document.createElement('textarea');
-            textarea.value = text;
+    copyBtn.addEventListener('click', function() {
+        if (!currentData) {
+            status.textContent = '❌ No data! Click "Fetch Data" first.';
+            status.className = 'status error';
+            return;
+        }
+        
+        const code = generatePineScript(currentData);
+        
+        navigator.clipboard.writeText(code).then(function() {
+            status.textContent = '✅ PineScript code copied to clipboard!';
+            status.className = 'status success';
+        }).catch(function() {
+            // Fallback
+            const textarea = document.createElement('textarea');
+            textarea.value = code;
             document.body.appendChild(textarea);
             textarea.select();
             document.execCommand('copy');
             textarea.remove();
+            status.textContent = '✅ PineScript code copied to clipboard!';
+            status.className = 'status success';
         });
-    }
+    });
 });
 
 // =============================================
-// GENERATE CONSOLE CODE
+// GENERATE PINESCRIPT CODE
 // =============================================
 
-function generateConsoleCode() {
-    return [
-        '// =============================================',
-        '// PASTE THIS IN CONSOLE TO DRAW OI LEVELS',
-        '// =============================================',
-        '',
-        '(async function drawOILines() {',
-        '    console.log("Fetching OI data...");',
-        '    ',
-        '    try {',
-        '        var response = await fetch("https://kdneyzemvqzhwzztflvq.supabase.co/functions/v1/process-data");',
-        '        var json = await response.json();',
-        '        if (!json.success) { console.error("API error"); return; }',
-        '        ',
-        '        var data = json.data;',
-        '        console.log("Data:", data);',
-        '        ',
-        '        var chart = tvWidget.activeChart();',
-        '        if (!chart) { console.error("No chart"); return; }',
-        '        ',
-        '        // Remove old OI lines',
-        '        var allShapes = chart.getAllShapes() || [];',
-        '        var oldShapes = allShapes.filter(function(s) { return s.text && s.text.indexOf("OI:") !== -1; });',
-        '        oldShapes.forEach(function(s) { chart.removeEntity(s.id); console.log("Removed:", s.text); });',
-        '        ',
-        '        var COLORS = {',
-        '            ceSecondHighest: "#FFD700", peSecondHighest: "#FF8C00",',
-        '            ceHighestVolume: "#2196F3", peHighestVolume: "#9C27B0",',
-        '            buyEntry: "#4CAF50", buySL: "#4CAF50",',
-        '            buyTarget1: "#4CAF50", buyTarget2: "#4CAF50",',
-        '            sellEntry: "#F44336", sellSL: "#F44336",',
-        '            sellTarget1: "#F44336", sellTarget2: "#F44336"',
-        '        };',
-        '        ',
-        '        function draw(price, color, style, label) {',
-        '            if (!price || price === 0) return;',
-        '            var id = chart.createShape(',
-        '                { time: Math.floor(Date.now()/1000), price: price },',
-        '                { shape: "horizontal_line", text: "OI: " + label + " " + price,',
-        '                  color: color, lineStyle: style, linewidth: style===1?2:style===2?1:2, visible: true, zorder: 10 }',
-        '            );',
-        '            console.log("Drew " + label + " at " + price + " (ID: " + id + ")");',
-        '        }',
-        '        ',
-        '        draw(data.ceSecondHighest, COLORS.ceSecondHighest, 2, "CE 2nd");',
-        '        draw(data.peSecondHighest, COLORS.peSecondHighest, 2, "PE 2nd");',
-        '        draw(data.ceHighestVolume, COLORS.ceHighestVolume, 0, "CE Vol");',
-        '        draw(data.peHighestVolume, COLORS.peHighestVolume, 0, "PE Vol");',
-        '        draw(data.targets?.buy?.entry, COLORS.buyEntry, 0, "Buy Entry");',
-        '        draw(data.targets?.buy?.sl, COLORS.buySL, 1, "Buy SL");',
-        '        draw(data.targets?.buy?.target1, COLORS.buyTarget1, 2, "Buy T1");',
-        '        draw(data.targets?.buy?.target2, COLORS.buyTarget2, 2, "Buy T2");',
-        '        draw(data.targets?.sell?.entry, COLORS.sellEntry, 0, "Sell Entry");',
-        '        draw(data.targets?.sell?.sl, COLORS.sellSL, 1, "Sell SL");',
-        '        draw(data.targets?.sell?.target1, COLORS.sellTarget1, 2, "Sell T1");',
-        '        draw(data.targets?.sell?.target2, COLORS.sellTarget2, 2, "Sell T2");',
-        '        ',
-        '        console.log("All lines drawn!");',
-        '    } catch(e) { console.error("Error:", e); }',
-        '})();'
-    ].join('\n');
-}
+function generatePineScript(data) {
+    const targets = data.targets;
+    const ceSecond = data.ceSecondHighest || 0;
+    const peSecond = data.peSecondHighest || 0;
+    const ceVol = data.ceHighestVolume || 0;
+    const peVol = data.peHighestVolume || 0;
+    
+    // Get values or defaults
+    const buyEntry = targets?.buy?.entry || 0;
+    const buySL = targets?.buy?.sl || 0;
+    const buyT1 = targets?.buy?.target1 || 0;
+    const buyT2 = targets?.buy?.target2 || 0;
+    const buyT3 = buyT2 + 50 || 0;
+    
+    const sellEntry = targets?.sell?.entry || 0;
+    const sellSL = targets?.sell?.sl || 0;
+    const sellT1 = targets?.sell?.target1 || 0;
+    const sellT2 = targets?.sell?.target2 || 0;
+    const sellT3 = sellT2 - 50 || 0;
+    
+    return `//@version=6
+indicator("Nifty OI Levels", overlay=true)
 
 // =============================================
-// GENERATE FULL SCRIPT
+// LIVE DATA FROM SUPABASE
 // =============================================
 
-function generateFullScript() {
-    return [
-        '// =============================================',
-        '// FULL NIFTY OI INJECTOR - PASTE IN CONSOLE',
-        '// =============================================',
-        '',
-        '(function() {',
-        '    console.log("Running full OI injector...");',
-        '    var chart = tvWidget.activeChart();',
-        '    if (!chart) { console.error("No chart"); return; }',
-        '    ',
-        '    var shapes = {};',
-        '    var lastValues = {};',
-        '    var COLORS = {',
-        '        ceSecondHighest: "#FFD700", peSecondHighest: "#FF8C00",',
-        '        ceHighestVolume: "#2196F3", peHighestVolume: "#9C27B0",',
-        '        buyEntry: "#4CAF50", buySL: "#4CAF50",',
-        '        buyTarget1: "#4CAF50", buyTarget2: "#4CAF50",',
-        '        sellEntry: "#F44336", sellSL: "#F44336",',
-        '        sellTarget1: "#F44336", sellTarget2: "#F44336"',
-        '    };',
-        '    var STYLES = { solid: 0, dotted: 1, dashed: 2 };',
-        '    ',
-        '    function drawLine(price, color, style, label) {',
-        '        if (!price || price === 0) return null;',
-        '        try {',
-        '            var id = chart.createShape(',
-        '                { time: Math.floor(Date.now()/1000), price: price },',
-        '                { shape: "horizontal_line", text: label + ": " + price,',
-        '                  color: color, lineStyle: style, linewidth: style===1?2:style===2?1:2, visible: true, zorder: 10 }',
-        '            );',
-        '            console.log("Drew " + label + " at " + price);',
-        '            return id;',
-        '        } catch(e) { console.error("Failed " + label + ":", e); return null; }',
-        '    }',
-        '    ',
-        '    function removeLine(id) { if(id) try{ chart.removeEntity(id); }catch(e){} }',
-        '    ',
-        '    function updateLevel(key, value, label, color, style) {',
-        '        if (!value || value === 0) {',
-        '            if(shapes[key]) removeLine(shapes[key]);',
-        '            shapes[key]=null; lastValues[key]=null; return;',
-        '        }',
-        '        if (lastValues[key] !== value || !shapes[key]) {',
-        '            if(shapes[key]) removeLine(shapes[key]);',
-        '            shapes[key] = drawLine(value, color, style, label);',
-        '            lastValues[key] = value;',
-        '        }',
-        '    }',
-        '    ',
-        '    async function fetchAndDraw() {',
-        '        try {',
-        '            var response = await fetch("https://kdneyzemvqzhwzztflvq.supabase.co/functions/v1/process-data");',
-        '            var json = await response.json();',
-        '            if (!json.success) { console.error("API error"); return; }',
-        '            var data = json.data;',
-        '            console.log("Data:", data);',
-        '            updateLevel("ceSecondHighest", data.ceSecondHighest, "CE 2nd", COLORS.ceSecondHighest, STYLES.dashed);',
-        '            updateLevel("peSecondHighest", data.peSecondHighest, "PE 2nd", COLORS.peSecondHighest, STYLES.dashed);',
-        '            updateLevel("ceHighestVolume", data.ceHighestVolume, "CE Vol", COLORS.ceHighestVolume, STYLES.solid);',
-        '            updateLevel("peHighestVolume", data.peHighestVolume, "PE Vol", COLORS.peHighestVolume, STYLES.solid);',
-        '            updateLevel("buyEntry", data.targets?.buy?.entry, "Buy Entry", COLORS.buyEntry, STYLES.solid);',
-        '            updateLevel("buySL", data.targets?.buy?.sl, "Buy SL", COLORS.buySL, STYLES.dotted);',
-        '            updateLevel("buyTarget1", data.targets?.buy?.target1, "Buy T1", COLORS.buyTarget1, STYLES.dashed);',
-        '            updateLevel("buyTarget2", data.targets?.buy?.target2, "Buy T2", COLORS.buyTarget2, STYLES.dashed);',
-        '            updateLevel("sellEntry", data.targets?.sell?.entry, "Sell Entry", COLORS.sellEntry, STYLES.solid);',
-        '            updateLevel("sellSL", data.targets?.sell?.sl, "Sell SL", COLORS.sellSL, STYLES.dotted);',
-        '            updateLevel("sellTarget1", data.targets?.sell?.target1, "Sell T1", COLORS.sellTarget1, STYLES.dashed);',
-        '            updateLevel("sellTarget2", data.targets?.sell?.target2, "Sell T2", COLORS.sellTarget2, STYLES.dashed);',
-        '            console.log("All levels updated!");',
-        '        } catch(e) { console.error("Error:", e); }',
-        '    }',
-        '    ',
-        '    fetchAndDraw();',
-        '    setInterval(fetchAndDraw, 10000);',
-        '    console.log("Auto-updating every 10 seconds");',
-        '})();'
-    ].join('\n');
+// OI Levels (for reference)
+// CE 2nd Highest: ${ceSecond}
+// PE 2nd Highest: ${peSecond}
+// CE Highest Volume: ${ceVol}
+// PE Highest Volume: ${peVol}
+
+// =============================================
+// BUY LEVELS
+// =============================================
+
+buyEntry = input.float(${buyEntry}, "Buy Entry")
+buySL = input.float(${buySL}, "Buy SL")
+buyTarget1 = input.float(${buyT1}, "Buy Target 1")
+buyTarget2 = input.float(${buyT2}, "Buy Target 2")
+buyTarget3 = input.float(${buyT3}, "Buy Target 3")
+
+// =============================================
+// SELL LEVELS
+// =============================================
+
+sellEntry = input.float(${sellEntry}, "Sell Entry")
+sellSL = input.float(${sellSL}, "Sell SL")
+sellTarget1 = input.float(${sellT1}, "Sell Target 1")
+sellTarget2 = input.float(${sellT2}, "Sell Target 2")
+sellTarget3 = input.float(${sellT3}, "Sell Target 3")
+
+// =============================================
+// PLOT LINES
+// =============================================
+
+// Buy Levels
+plot(buyEntry, title="Buy Entry", color=color.green, linewidth=2, style=plot.style_stepline)
+plot(buySL, title="Buy SL", color=color.green, linewidth=2, style=plot.style_circles)
+plot(buyTarget1, title="Buy Target 1", color=color.green, linewidth=2, style=plot.style_stepline)
+plot(buyTarget2, title="Buy Target 2", color=color.green, linewidth=2, style=plot.style_stepline)
+plot(buyTarget3, title="Buy Target 3", color=color.green, linewidth=2, style=plot.style_stepline)
+
+// Sell Levels
+plot(sellEntry, title="Sell Entry", color=color.red, linewidth=2, style=plot.style_stepline)
+plot(sellSL, title="Sell SL", color=color.red, linewidth=2, style=plot.style_circles)
+plot(sellTarget1, title="Sell Target 1", color=color.red, linewidth=2, style=plot.style_stepline)
+plot(sellTarget2, title="Sell Target 2", color=color.red, linewidth=2, style=plot.style_stepline)
+plot(sellTarget3, title="Sell Target 3", color=color.red, linewidth=2, style=plot.style_stepline)
+
+// =============================================
+// LABELS (NO BOX)
+// =============================================
+
+if barstate.islast
+    // Buy Labels
+    label.new(bar_index, buyEntry, text="BUY", color=color.green, style=label.style_none, textcolor=color.green, size=size.large)
+    label.new(bar_index, buySL, text="SL", color=color.green, style=label.style_none, textcolor=color.green, size=size.normal)
+    label.new(bar_index, buyTarget1, text="T1", color=color.green, style=label.style_none, textcolor=color.green, size=size.normal)
+    label.new(bar_index, buyTarget2, text="T2", color=color.green, style=label.style_none, textcolor=color.green, size=size.normal)
+    label.new(bar_index, buyTarget3, text="T3", color=color.green, style=label.style_none, textcolor=color.green, size=size.normal)
+    
+    // Sell Labels
+    label.new(bar_index, sellEntry, text="SELL", color=color.red, style=label.style_none, textcolor=color.red, size=size.large)
+    label.new(bar_index, sellSL, text="SL", color=color.red, style=label.style_none, textcolor=color.red, size=size.normal)
+    label.new(bar_index, sellTarget1, text="T1", color=color.red, style=label.style_none, textcolor=color.red, size=size.normal)
+    label.new(bar_index, sellTarget2, text="T2", color=color.red, style=label.style_none, textcolor=color.red, size=size.normal)
+    label.new(bar_index, sellTarget3, text="T3", color=color.red, style=label.style_none, textcolor=color.red, size=size.normal)
+`;
 }
