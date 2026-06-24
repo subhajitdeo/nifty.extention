@@ -1,12 +1,4 @@
-// =============================================
-// BACKGROUND SERVICE WORKER
-// =============================================
-
-console.log("✅ Background started");
-
-// =============================================
-// FETCH DATA FROM SUPABASE
-// =============================================
+console.log("Background service worker started");
 
 async function fetchSupabaseData() {
     try {
@@ -14,14 +6,10 @@ async function fetchSupabaseData() {
         const json = await response.json();
         return json;
     } catch (e) {
-        console.error("❌ Fetch error:", e);
+        console.error("Fetch error:", e);
         return null;
     }
 }
-
-// =============================================
-// LISTEN FOR MESSAGES
-// =============================================
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if (request.action === 'fetchData') {
