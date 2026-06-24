@@ -1,27 +1,17 @@
 console.clear();
 
-console.log("Content script loaded");
+console.log("===== CONTENT SCRIPT =====");
 
-const script = document.createElement("script");
+console.log("location:", location.href);
 
-script.textContent = `
-    console.log("===== PAGE SCRIPT =====");
+console.log("window === globalThis", window === globalThis);
 
-    console.log("window.tvWidget =", window.tvWidget);
+console.log("chrome.runtime.id =", chrome.runtime.id);
 
-    console.log("typeof tvWidget =", typeof tvWidget);
+console.log("document.currentScript =", document.currentScript);
 
-    if(window.tvWidget){
+console.log("Execution test");
 
-        console.log("SUCCESS PAGE");
+window.__EXTENSION_TEST__ = 12345;
 
-    }else{
-
-        console.log("FAILED PAGE");
-
-    }
-`;
-
-(document.head || document.documentElement).appendChild(script);
-
-script.remove();
+console.log("window.__EXTENSION_TEST__ =", window.__EXTENSION_TEST__);
